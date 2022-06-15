@@ -5,10 +5,12 @@ import os
 import sys
 import time
 import zipfile
-
 import dropbox
-
 import plist_utils
+import http.client as http_client
+
+#http_client.HTTPConnection.debuglevel = 1
+
 
 HELP_MESSAGE = 'Usage: main.py -i <input_file> -o <output_dropbox_dir>'
 HELP_MESSAGE_FULL = 'Usage: main.py -i <input_file> -o <output_dropbox_dir>\n\
@@ -48,8 +50,6 @@ PLIST_CONTENT_TEMPLATE = '<?xml version="1.0" encoding="UTF-8"?>\n\
 
 DOWNLOAD_LINK_TEMPLATE_IOS = "itms-services://?action=download-manifest&url={key_plist_url}"
 
-DOWNLOAD_LINK_TEMPLATE_IOS_8 = "itms-services://?action=download-manifest&url={key_plist_ios8_url}"
-
 def analyse_ipa(ipa_file):
     with zipfile.ZipFile(ipa_file, "r") as ipa:
         ipa_info = {}
@@ -87,7 +87,7 @@ def upload_and_share_file(dbx, dropbox_path, file_or_text_content):
     print('File uploaded')
 
     print('Building shared link... ')
-    shared_url = dbx.sharing_create_shared_link_with_settings(dropbox_path)
+    shared_url = dbx.sharing_create_shared_link(dropbox_path)
     from urllib.parse import urlparse
     parsed_url = urlparse(shared_url.url)
     parsed_url = parsed_url._replace(netloc='dl.dropboxusercontent.com')
@@ -123,27 +123,17 @@ def upload_ipa_and_plist_files(ipa_local_path, output_dropbox_dir):
     try:
         with open(ipa_local_path, mode='rb') as f:
             ipa_dropbox_path = os.path.join(output_dropbox_dir, base_filename + '.ipa')
-            ipa_dropbox_url = upload_and_share_file(dbx, ipa_dropbox_path, f)
+            ipa_dropbox_url = upload_and_share_file(dbx, ipa_dropbox_path, f.read())
 
             plist_dropbox_path = os.path.join(output_dropbox_dir, base_filename + '.plist')
             plist_content = generate_plist_content_string_for_dropbox(ipa_local_path, ipa_dropbox_url)
             plist_dropbox_url = upload_and_share_file(dbx, plist_dropbox_path, plist_content)
 
-            cur_date_string = time.strftime("%Y-%m-%d")
-
-            plist_ios8_dropbox_path = os.path.join(output_dropbox_dir, base_filename + '-ios8.plist')
-            ios8_suffix = 'dummy-' + cur_date_string
-            plist_ios8_content = generate_plist_content_string_for_dropbox(ipa_local_path, ipa_dropbox_url,
-                                                                           ios8_suffix=ios8_suffix)
-            plist_ios8_dropbox_url = upload_and_share_file(dbx, plist_ios8_dropbox_path, plist_ios8_content)
-
             download_link_ios = DOWNLOAD_LINK_TEMPLATE_IOS.format(key_plist_url=plist_dropbox_url)
-            download_link_ios8 = DOWNLOAD_LINK_TEMPLATE_IOS_8.format(key_plist_ios8_url=plist_ios8_dropbox_url)
 
             print('\nAll files uploaded!')
-            print('iOS 9-10 download url: ' + download_link_ios)
-            print('iOS 8 download url: ' + download_link_ios8)
-            print('Send links above via email to iOS devices. Tap on links on iOS devices. Installation should start automatically')
+            print('iOS download url: ' + download_link_ios)
+
     except Exception as err:
         print("Failed to upload file: ", err)
         exit(1)
