@@ -12,8 +12,8 @@ import http.client as http_client
 #http_client.HTTPConnection.debuglevel = 1
 
 
-HELP_MESSAGE = 'Usage: main.py -i <input_file> -o <output_dropbox_dir>'
-HELP_MESSAGE_FULL = 'Usage: main.py -i <input_file> -o <output_dropbox_dir>\n\
+HELP_MESSAGE = '사용법: main.py -i <업로드 파일> -o <DropBox 업로드 대상 폴더>'
+HELP_MESSAGE_FULL = 'Usage: main.py -i <업로드 파일> -o <DropBox 업로드 대상 폴더>\n\
     Example: main.py -i /Users/user/AdHocFile.ipa -o /AdHocs/TestAdHoc'
 
 PLIST_CONTENT_TEMPLATE = '<?xml version="1.0" encoding="UTF-8"?>\n\
@@ -82,11 +82,11 @@ def generate_plist_content_string_for_dropbox(ipa_file_path, ipa_url, ios8_suffi
 
 
 def upload_and_share_file(dbx, dropbox_path, file_or_text_content):
-    print('Uploading file to dropbox location: ' + dropbox_path)
+    print('파일을 DropBox에 업로드 합니다. 업로드 위치: ' + dropbox_path)
     dbx.files_upload(file_or_text_content, dropbox_path)
-    print('File uploaded')
+    print('파일 업로드 완료')
 
-    print('Building shared link... ')
+    print('공유 링크를 생성중입니다...')
     shared_url = dbx.sharing_create_shared_link(dropbox_path)
     from urllib.parse import urlparse
     parsed_url = urlparse(shared_url.url)
@@ -95,7 +95,7 @@ def upload_and_share_file(dbx, dropbox_path, file_or_text_content):
     from urllib.parse import urlunparse
 
     shared_url_str = urlunparse(parsed_url)
-    print('File shared. Download link: ' + shared_url_str)
+    print('공유 링크 생성 완료. 링크: ' + shared_url_str)
 
     return shared_url_str
 
@@ -110,13 +110,13 @@ def upload_ipa_and_plist_files(ipa_local_path, output_dropbox_dir):
     except Exception:
         pass
     if appToken is None:
-        print('Error parsing configuration file ' + config_filename)
+        print('설정 파일을 읽을 수 없습니다. >> ' + config_filename)
         exit(1)
 
     base_filename = os.path.basename(ipa_local_path)
     base_filename, ipa_extension = os.path.splitext(base_filename)
     if not '.ipa' == ipa_extension:
-        print('Extension of file is not .ipa: ', ipa_extension)
+        print('파일 확장자가 ipa가 아닙니다. >> ', ipa_extension)
         exit(1)
 
     dbx = dropbox.Dropbox(appToken)
@@ -131,11 +131,11 @@ def upload_ipa_and_plist_files(ipa_local_path, output_dropbox_dir):
 
             download_link_ios = DOWNLOAD_LINK_TEMPLATE_IOS.format(key_plist_url=plist_dropbox_url)
 
-            print('\nAll files uploaded!')
-            print('iOS download url: ' + download_link_ios)
+            print('\nDropbox 배포 완료.')
+            print('생성된 최종 주소\n' + download_link_ios)
 
     except Exception as err:
-        print("Failed to upload file: ", err)
+        print("파일 업로드 중 오류가 발생했습니다 >> ", err)
         exit(1)
 
 
